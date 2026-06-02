@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Nexus // Analytics Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            /* Softer, non-pure black background */
+            --bg: #0f172a; 
+            --sidebar: #1e293b;
+            --panel: #1e293b;
+            /* Calm Blue instead of Neon Mint */
+            --accent: #60a5fa; 
+            --accent-soft: rgba(96, 165, 250, 0.1);
+            --border: #334155;
+            /* Off-white text to reduce glare */
+            --text: #f1f5f9;
+            --muted: #94a3b8;
+            --terminal-bg: #020617;
+        }
+
+        * { box-sizing: border-box; }
+        body {
+            background-color: var(--bg);
+            color: var(--text);
+            font-family: 'Inter', sans-serif;
+            margin: 0; display: flex; height: 100vh; overflow: hidden;
+        }
+
+        /* --- Sidebar --- */
+        .sidebar {
+            width: 300px;
+            background: var(--sidebar);
+            border-right: 1px solid var(--border);
+            padding: 40px 25px;
+            display: flex; flex-direction: column; justify-content: space-between;
+        }
+
+        .brand { font-weight: 600; font-size: 20px; letter-spacing: -0.5px; margin-bottom: 40px; color: var(--text); }
+        .brand span { color: var(--accent); font-weight: 300; }
+
+        .metric-group { display: flex; flex-direction: column; gap: 30px; }
+        .metric-item { display: flex; flex-direction: column; gap: 5px; }
+        .m-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
+        .m-value { font-family: 'JetBrains Mono', monospace; font-size: 24px; color: var(--accent); }
+
+        .controls { display: flex; flex-direction: column; gap: 12px; margin-top: 40px;}
+        .btn {
+            background: var(--accent); border: none; color: #0f172a;
+            padding: 14px; border-radius: 6px; font-weight: 600; font-size: 13px;
+            cursor: pointer; transition: 0.2s; text-transform: uppercase;
+        }
+        .btn:hover { background: #93c5fd; transform: translateY(-1px); }
+        .btn-csv { background: transparent; border: 1px solid var(--border); color: var(--text); }
+        .btn-csv:hover { background: rgba(255,255,255,0.05); }
+        .btn:disabled { opacity: 0.3; cursor: not-allowed; }
+
+        /* --- Main Content --- */
+        .main { flex: 1; padding: 30px 40px; overflow-y: auto; display: flex; flex-direction: column; gap: 20px; }
+
+        .dashboard-header { display: flex; justify-content: space-between; align-items: center; }
+        .status-badge { font-family: 'JetBrains Mono'; font-size: 11px; color: var(--accent); padding: 4px 12px; border: 1px solid var(--accent); border-radius: 4px; background: var(--accent-soft); }
+
+        /* --- Chart Area --- */
+        .chart-container {
+            background: var(--panel); border: 1px solid var(--border);
+            border-radius: 12px; padding: 20px; height: 300px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        .lower-grid { display: grid; grid-template-columns: 1fr 1.3fr; gap: 20px; flex: 1; min-height: 350px; }
+
+        /* --- Terminal --- */
+        .terminal {
+            background: var(--terminal-bg); border: 1px solid var(--border); border-radius: 12px;
+            display: flex; flex-direction: column; overflow: hidden;
+        }
+        .t-header { background: rgba(0,0,0,0.2); padding: 12px 20px; font-size: 11px; color: var(--muted); border-bottom: 1px solid var(--border); text-transform: uppercase; letter-spacing: 1px;}
+        .t-body { padding: 20px; font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #cbd5e1; overflow-y: auto; flex: 1; line-height: 1.6; }
+        .log-entry { margin-bottom: 4px; color: #94a3b8; }
+        .log-entry.success { color: #4ade80; }
+
+        /* --- Table --- */
+        .table-container {
+            background: var(--panel); border: 1px solid var(--border);
+            border-radius: 12px; overflow: hidden; display: flex; flex-direction: column;
+        }
+        .table-scroll { overflow-y: auto; flex: 1; }
+        table { width: 100%; border-collapse: collapse; }
+        thead th { 
+            position: sticky; top: 0; background: #334155; 
+            text-align: left; padding: 12px 20px; color: var(--text); 
+            font-size: 11px; text-transform: uppercase; z-index: 10;
+        }
+        tbody td { padding: 12px 20px; border-bottom: 1px solid #334155; font-size: 13px; font-family: 'JetBrains Mono'; }
+        .row-date { color: var(--muted); }
+        .row-val { font-weight: 500; color: var(--accent); }
+
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-thumb { background: #475569; border-radius: 10px; }
+    </style>
+</head>
+<body>
+
+<div class="sidebar">
+    <div>
+        <div class="brand">STARLINK <span>DATA USAGE</span></div>
+        <div class="metric-group">
+            <div class="metric-item">
+                <div class="m-label">Network Volume</div>
+                <div class="m-value" id="statTotal">0.00 GB</div>
+            </div>
+            <div class="metric-item">
+                <div class="m-label">Avg Throughput</div>
+                <div class="m-value" id="statAvg">0.00 GB</div>
+            </div>
+            <div class="metric-item">
+                <div class="m-label">Peak Session</div>
+                <div class="m-value" id="statPeak">0.00 GB</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="controls">
+        <button class="btn" id="scrapeBtn" onclick="startScrape()">Start Data Scrape</button>
+        <button class="btn btn-csv" onclick="location.href='/api/download'">Export .CSV</button>
+    </div>
+</div>
+
+<div class="main">
+    <div class="dashboard-header">
+        <h2 style="margin:0; font-weight: 500; letter-spacing: -0.5px;">System Intelligence</h2>
+        <div class="status-badge" id="statusText">STANDBY</div>
+    </div>
+
+    <div class="chart-container">
+        <canvas id="usageChart"></canvas>
+    </div>
+
+    <div class="lower-grid">
+        <div class="terminal">
+            <div class="t-header">Process Stream</div>
+            <div class="t-body" id="logBox">
+                <div class="log-entry">> Ready for uplink...</div>
+            </div>
+        </div>
+
+        <div class="table-container">
+            <div class="t-header">Telemetry Records</div>
+            <div class="table-scroll">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Temporal Stamp</th>
+                            <th>Consumption</th>
+                            <th>Feed Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="dataTableBody">
+                        <tr><td colspan="3" style="text-align: center; color: var(--muted); padding: 40px;">No telemetry synced.</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    let polling;
+    let myChart;
+
+    const ctx = document.getElementById('usageChart').getContext('2d');
+    myChart = new Chart(ctx, {
+        type: 'line',
+        data: { labels: [], datasets: [{ 
+            label: 'Daily Usage (GB)', 
+            data: [], 
+            borderColor: '#60a5fa', 
+            backgroundColor: 'rgba(96, 165, 250, 0.1)',
+            fill: true,
+            tension: 0.3,
+            borderWidth: 2,
+            pointRadius: 2,
+            pointBackgroundColor: '#60a5fa'
+        }]},
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+                x: { grid: { display: false }, ticks: { color: '#64748b', font: { size: 10 } } },
+                y: { grid: { color: '#334155' }, ticks: { color: '#64748b', font: { size: 10 } } }
+            }
+        }
+    });
+
+    async function startScrape() {
+        const btn = document.getElementById('scrapeBtn');
+        btn.disabled = true;
+        document.getElementById('statusText').innerText = "INGESTING";
+        await fetch('/api/scrape', {method: 'POST'});
+        polling = setInterval(checkStatus, 1000);
+    }
+
+    async function checkStatus() {
+        const res = await fetch('/api/status');
+        const s = await res.json();
+        const logBox = document.getElementById('logBox');
+        
+        const newLog = document.createElement('div');
+        newLog.className = s.done && !s.error ? 'log-entry success' : 'log-entry';
+        newLog.innerText = `> ${s.message}`;
+        
+        if (logBox.lastElementChild.innerText !== newLog.innerText) {
+            logBox.appendChild(newLog);
+            logBox.scrollTop = logBox.scrollHeight;
+        }
+
+        if (!s.running && s.done) {
+            clearInterval(polling);
+            document.getElementById('scrapeBtn').disabled = false;
+            document.getElementById('statusText').innerText = "SYNCED";
+            loadData();
+        }
+    }
+
+    async function loadData() {
+        const res = await fetch('/api/data');
+        const payload = await res.json();
+        
+        document.getElementById('statTotal').innerText = payload.stats.total;
+        document.getElementById('statAvg').innerText = payload.stats.avg;
+        document.getElementById('statPeak').innerText = payload.stats.peak;
+
+        const sortedData = [...payload.data].reverse();
+        const tbody = document.getElementById('dataTableBody');
+        tbody.innerHTML = sortedData.map(row => `
+            <tr>
+                <td class="row-date">${row.day}</td>
+                <td class="row-val">${row.data_usage}</td>
+                <td style="color: var(--muted); font-size: 10px;">${row.extra}</td>
+            </tr>
+        `).join('');
+
+        const chartLabels = payload.data.map(r => r.day);
+        const chartValues = payload.data.map(r => parseFloat(r.data_usage.split(' ')[0]));
+        
+        myChart.data.labels = chartLabels;
+        myChart.data.datasets[0].data = chartValues;
+        myChart.update();
+    }
+</script>
+</body>
+</html>
