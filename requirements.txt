@@ -1,0 +1,4 @@
+Flask
+undetected-chromedriver
+pandas
+setuptools

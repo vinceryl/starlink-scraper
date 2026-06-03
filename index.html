@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Starlink Usage Tracker</title>
+    <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@400;700&display=swap" rel="stylesheet"/>
+    <style>
+        :root {
+            --bg: #050d05;
+            --panel: #0a160a;
+            --accent: #39ff14;
+            --accent2: #7fff00;
+            --text: #b8d4b8;
+            --border: #1a3a1a;
+            --success: #39ff14;
+            --error: #ff3a3a;
+            --warn: #ffcc00;
+            --dim: #3a5a3a;
+        }
+        * { box-sizing: border-box; }
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'Share Tech Mono', monospace;
+            margin: 0;
+            padding: 24px 16px;
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 860px;
+            margin: auto;
+            background: var(--panel);
+            padding: 32px;
+            border-radius: 6px;
+            border: 1px solid var(--border);
+            box-shadow: 0 0 40px rgba(57,255,20,0.06);
+        }
+
+        /* Header */
+        .header {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 14px;
+            margin-bottom: 28px;
+        }
+        .header-icon { font-size: 32px; }
+        h1 {
+            font-family: 'Rajdhani', sans-serif;
+            font-size: 26px;
+            font-weight: 700;
+            color: var(--accent);
+            letter-spacing: 4px;
+            margin: 0;
+            text-transform: uppercase;
+            text-shadow: 0 0 12px rgba(57,255,20,0.4);
+        }
+
+        /* Stat card */
+        .stat-card {
+            background: rgba(57,255,20,0.04);
+            border: 1px solid var(--accent);
+            padding: 24px 20px;
+            text-align: center;
+            margin: 0 0 20px;
+            border-radius: 4px;
+            position: relative;
+            overflow: hidden;
+        }
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, var(--accent), transparent);
+        }
+        .stat-label {
+            font-size: 10px;
+            letter-spacing: 3px;
+            color: var(--dim);
+            margin-bottom: 8px;
+        }
+        .stat-value {
+            font-family: 'Rajdhani', sans-serif;
+            font-size: 52px;
+            font-weight: 700;
+            color: var(--accent);
+            line-height: 1;
+            text-shadow: 0 0 20px rgba(57,255,20,0.5);
+        }
+
+        /* Log */
+        .log-label {
+            font-size: 10px;
+            letter-spacing: 2px;
+            color: var(--dim);
+            margin-bottom: 4px;
+        }
+        .log {
+            background: #020602;
+            padding: 10px 12px;
+            font-size: 11px;
+            color: var(--dim);
+            height: 120px;
+            overflow-y: auto;
+            margin: 0 0 14px;
+            border-radius: 3px;
+            border: 1px solid var(--border);
+        }
+        .log::-webkit-scrollbar { width: 4px; }
+        .log::-webkit-scrollbar-track { background: #020602; }
+        .log::-webkit-scrollbar-thumb { background: var(--border); }
+        .log div { padding: 1px 0; line-height: 1.5; }
+
+        /* Button */
+        .btn-run {
+            width: 100%;
+            padding: 14px;
+            background: transparent;
+            border: 1px solid var(--accent);
+            color: var(--accent);
+            font-family: 'Rajdhani', sans-serif;
+            font-size: 15px;
+            font-weight: 700;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            cursor: pointer;
+            border-radius: 3px;
+            transition: .25s;
+            margin-bottom: 20px;
+        }
+        .btn-run:hover:not(:disabled) {
+            background: var(--accent);
+            color: #050d05;
+            box-shadow: 0 0 20px rgba(57,255,20,0.3);
+        }
+        .btn-run:disabled { opacity: 0.4; cursor: not-allowed; }
+
+        /* Results */
+        #results { display: none; }
+        .results-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        .row-count { font-size: 11px; color: var(--dim); }
+
+        table { width: 100%; border-collapse: collapse; }
+        thead { border-bottom: 1px solid var(--accent); }
+        th {
+            padding: 8px 12px;
+            text-align: left;
+            font-size: 10px;
+            letter-spacing: 2px;
+            color: var(--dim);
+            font-weight: normal;
+        }
+        td {
+            padding: 9px 12px;
+            font-size: 13px;
+            border-bottom: 1px solid var(--border);
+        }
+        tr:hover td { background: rgba(57,255,20,0.03); }
+        .gb-val { color: var(--accent); font-weight: bold; }
+
+        /* Download */
+        .btn-dl {
+            display: block;
+            margin-top: 16px;
+            color: var(--accent2);
+            text-align: center;
+            text-decoration: none;
+            border: 1px solid var(--accent2);
+            padding: 11px;
+            border-radius: 3px;
+            font-size: 13px;
+            letter-spacing: 1px;
+            transition: .25s;
+        }
+        .btn-dl:hover { background: var(--accent2); color: #050d05; }
+
+        /* Divider */
+        .divider {
+            border: none;
+            border-top: 1px solid var(--border);
+            margin: 20px 0;
+        }
+
+        /* Scrollable table wrapper */
+        .table-wrap { max-height: 340px; overflow-y: auto; }
+        .table-wrap::-webkit-scrollbar { width: 4px; }
+        .table-wrap::-webkit-scrollbar-track { background: var(--panel); }
+        .table-wrap::-webkit-scrollbar-thumb { background: var(--border); }
+    </style>
+</head>
+<body>
+<div class="container">
+
+    <div class="header">
+        <span class="header-icon">📡</span>
+        <h1>Starlink Usage Tracker</h1>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-label">TOTAL DATA USAGE</div>
+        <div id="liveTotal" class="stat-value">-- GB</div>
+    </div>
+
+    <div class="log-label">SYSTEM LOG</div>
+    <div id="log" class="log">
+        <div>Ready. Press START to launch Chrome and begin sync.</div>
+    </div>
+
+    <button class="btn-run" id="scrapeBtn" onclick="startScrape()">▶ START SYNC</button>
+
+    <div id="results">
+        <hr class="divider">
+        <div class="results-header">
+            <span style="font-size:11px; letter-spacing:2px; color:var(--dim)">DAILY BREAKDOWN</span>
+            <span id="rowCount" class="row-count"></span>
+        </div>
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr><th>DATE</th><th>USAGE</th></tr>
+                </thead>
+                <tbody id="tableBody"></tbody>
+            </table>
+        </div>
+        <a href="/api/download-csv" class="btn-dl">⬇ EXPORT CSV</a>
+    </div>
+
+</div>
+
+<script>
+    function addLog(msg, color) {
+        const log = document.getElementById('log');
+        const div = document.createElement('div');
+        div.style.color = color || '#3a5a3a';
+        div.textContent = '[' + new Date().toLocaleTimeString() + '] ' + msg;
+        log.appendChild(div);
+        log.scrollTop = log.scrollHeight;
+    }
+
+    async function startScrape() {
+        const btn = document.getElementById('scrapeBtn');
+        document.getElementById('log').innerHTML = '';
+        document.getElementById('results').style.display = 'none';
+        btn.disabled = true;
+        btn.innerText = 'SYNCING... LOG IN TO CHROME WINDOW';
+
+        addLog('Launching Chrome...');
+        addLog('Log in manually, then wait — this takes 2–3 minutes.', '#7fff00');
+
+        try {
+            const res = await fetch('/api/scrape', { method: 'POST' });
+            const result = await res.json();
+
+            if (result.success) {
+                if (result.data.length === 0) {
+                    addLog('Scrape succeeded but no data rows collected.', '#ffcc00');
+                    addLog('Check your terminal for tab-level errors.', '#ffcc00');
+                } else {
+                    document.getElementById('liveTotal').innerText = result.total_usage;
+                    document.getElementById('results').style.display = 'block';
+                    document.getElementById('rowCount').innerText = result.data.length + ' days';
+
+                    const tbody = document.getElementById('tableBody');
+                    tbody.innerHTML = '';
+                    result.data.forEach(row => {
+                        tbody.innerHTML += `<tr>
+                            <td>${row.Date}</td>
+                            <td class="gb-val">${parseFloat(row.Usage_GB).toFixed(2)} GB</td>
+                        </tr>`;
+                    });
+                    addLog(result.data.length + ' rows captured. CSV ready.', '#39ff14');
+                }
+            } else {
+                addLog('ERROR: ' + result.error, '#ff3a3a');
+                addLog('Check your terminal for the full traceback.', '#ffcc00');
+            }
+        } catch(e) {
+            addLog('Could not reach Flask server. Is app.py running?', '#ff3a3a');
+        }
+
+        btn.disabled = false;
+        btn.innerText = '▶ RUN AGAIN';
+    }
+</script>
+</body>
+</html>
